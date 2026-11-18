@@ -310,7 +310,7 @@ try{const s=JSON.parse(localStorage.getItem(KEY));if(s)D=s}catch(e){}
 ['items','moves','visits','conns','exps','combo','loans','lpay','kirana'].forEach(k=>D[k]=D[k]||[]);
 let cloudRef=null,cloudCol=null,cq=Promise.resolve();
 const cst=t=>{const e=document.getElementById('cloudSt');if(e)e.textContent=t};
-const cwarn=on=>{let e=document.getElementById('cloudWarn');if(!e){e=document.createElement('div');e.id='cloudWarn';e.style.cssText='position:sticky;top:0;z-index:50;background:#e5484d;color:#fff;padding:10px 12px;font-weight:700;font-size:14px;text-align:center;display:none';e.textContent='⚠️ Cloud Backup बंद आहे — डेटा फक्त या फोनमध्ये आहे. Backup Download करा किंवा Claude मध्ये login करून पान पुन्हा उघडा.';document.body.insertBefore(e,document.body.firstChild)}e.style.display=on?'block':'none'};
+const cwarn=on=>{let e=document.getElementById('cloudWarn');if(!e){e=document.createElement('div');e.id='cloudWarn';e.style.cssText='position:sticky;top:0;z-index:50;background:#e5484d;color:#fff;padding:10px 12px;font-weight:700;font-size:14px;text-align:center;display:none';e.textContent='⚠️ Cloud Backup बंद आहे — डेटा फक्त या फोनमध्ये आहे. येथे दाबून Login करा.';e.style.cursor='pointer';e.onclick=()=>runCloud();document.body.insertBefore(e,document.body.firstChild)}e.style.display=on?'block':'none'};
 let bkDay='';
 const BKRX=/^asm_bk_\d{4}-\d{2}-\d{2}$/;
 const dailyBk=async snap=>{try{if(!cloudCol)return;const day=today();if(bkDay===day)return;const cnt=['items','moves','visits','conns','exps','loans'].reduce((a,k)=>a+(snap[k]||[]).length,0);if(!cnt)return;bkDay=day;await cloudCol.doc('asm_bk_'+day).set(snap);const all=await cloudCol.get();const ids=all.docs.map(d=>d.id).filter(i=>BKRX.test(i)).sort();while(ids.length>14){await cloudCol.doc(ids.shift()).delete()}listBk()}catch(e){bkDay=''}};
@@ -548,13 +548,44 @@ $('bkRest').onclick=()=>{if(!rp){rp=1;$('bkRest').textContent='खात्र�
  rp=0;$('bkRest').textContent='⬆️ Restore करा';
  try{const o=JSON.parse($('bkTa').value),d=o.data||o;if(!d||!Array.isArray(d.items)||!Array.isArray(d.moves)||!Array.isArray(d.visits))throw 0;
   D={items:d.items,moves:d.moves,visits:d.visits,conns:Array.isArray(d.conns)?d.conns:[],exps:Array.isArray(d.exps)?d.exps:[],combo:Array.isArray(d.combo)?d.combo:[],loans:Array.isArray(d.loans)?d.loans:[],lpay:Array.isArray(d.lpay)?d.lpay:[]};save();render();$('bkBox').style.display='none';toast('✅ Restore झाले')}catch(x){toast('Backup बरोबर नाही')}};
+const FBCFG={apiKey:"AIzaSyA4mTdnJMF3uAo2otfWxpRMkkYvmvZ3188",authDomain:"anushree-8db55.firebaseapp.com",projectId:"anushree-8db55",storageBucket:"anushree-8db55.firebasestorage.app",messagingSenderId:"553420463284",appId:"1:553420463284:web:17c64cddf0effd1ea9cbe1"};
+let FB=null;
+async function fbLoad(){
+ if(FB)return FB;
+ const v='https://www.gstatic.com/firebasejs/10.14.1/';
+ const [app,auth,fs]=await Promise.all([import(v+'firebase-app.js'),import(v+'firebase-auth.js'),import(v+'firebase-firestore.js')]);
+ const a=app.initializeApp(FBCFG);
+ FB={auth,fs,a:auth.getAuth(a),db:fs.getFirestore(a)};
+ return FB;
+}
+function fbLogin(F){return new Promise(res=>{
+ const o=document.createElement('div');
+ o.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(10,20,40,.75);display:flex;align-items:center;justify-content:center;padding:16px';
+ o.innerHTML='<div style="background:#fff;border-radius:16px;padding:20px;width:100%;max-width:340px;color:#111"><h3 style="margin:0 0 4px">☁️ Cloud Login</h3><p style="margin:0 0 12px;font-size:13px;color:#555">डेटा सुरक्षित ठेवण्यासाठी Login करा</p><input id="fbE" type="email" placeholder="Email" autocomplete="username" style="width:100%;box-sizing:border-box;padding:11px;margin-bottom:8px;border:1px solid #ccd6e3;border-radius:8px;font-size:15px"><input id="fbP" type="password" placeholder="Password" autocomplete="current-password" style="width:100%;box-sizing:border-box;padding:11px;margin-bottom:8px;border:1px solid #ccd6e3;border-radius:8px;font-size:15px"><div id="fbM" style="color:#d33;font-size:13px;min-height:18px;margin-bottom:6px"></div><button id="fbGo" style="width:100%;padding:12px;border:0;border-radius:10px;background:#1565d8;color:#fff;font-weight:700;font-size:15px">Login</button><button id="fbSkip" style="width:100%;padding:10px;margin-top:8px;border:0;background:none;color:#555;font-size:14px">आत्ता नको</button></div>';
+ document.body.appendChild(o);
+ const q=id=>o.querySelector('#'+id);
+ q('fbSkip').onclick=()=>{o.remove();res(null)};
+ q('fbGo').onclick=async()=>{
+  const em=q('fbE').value.trim(),pw=q('fbP').value;
+  if(!em||!pw){q('fbM').textContent='Email आणि Password भरा';return}
+  q('fbGo').disabled=true;q('fbGo').textContent='थांबा…';
+  try{const r=await F.auth.signInWithEmailAndPassword(F.a,em,pw);o.remove();res(r.user)}
+  catch(x){q('fbGo').disabled=false;q('fbGo').textContent='Login';q('fbM').textContent='Email किंवा Password चुकीचा आहे'}
+ };
+})}
 async function initCloud(){
  try{
-  if(!window.claude||!claude.use)return cst('☁️ Cloud Backup बंद — Download Backup वापरा');
-  const [db,user]=await Promise.all([claude.use('db'),claude.use('user')]);
-  if(!db||!user)return cst('☁️ Cloud Backup बंद (Claude मध्ये login करा) — Download Backup वापरा');
-  const uid=await user.id();if(!uid)return cst('☁️ Cloud Backup बंद — Download Backup वापरा');
-  cloudRef=db.doc('data/users/'+uid+'/asm_state');cloudCol=db.collection('data/users/'+uid);
+  cst('☁️ Cloud Backup तपासत आहे…');
+  const F=await fbLoad();
+  await F.a.authStateReady();
+  let u=F.a.currentUser;
+  if(!u)u=await fbLogin(F);
+  if(!u){cloudRef=cloudCol=null;return cst('☁️ Cloud Backup बंद — वरचा लाल पट्टा दाबून Login करा')}
+  const fs=F.fs,db=F.db,uid=u.uid;
+  const sn=s=>({exists:s.exists(),id:s.id,data:()=>s.data()});
+  const dref=id=>{const r=fs.doc(db,'users',uid,'data',id);return{get:async()=>sn(await fs.getDoc(r)),set:d=>fs.setDoc(r,d)}};
+  cloudRef=dref('asm_state');
+  cloudCol={doc:dref,get:async()=>{const q=await fs.getDocs(fs.collection(db,'users',uid,'data'));return{docs:q.docs.map(d=>({id:d.id,data:()=>d.data()}))}}};
   const snap=await cloudRef.get();
   if(snap.exists){
    const c=snap.data()||{};['items','moves','visits','conns','exps','combo','loans','lpay','kirana'].forEach(k=>c[k]=Array.isArray(c[k])?c[k]:[]);
@@ -564,8 +595,8 @@ async function initCloud(){
     ['items','moves','visits','conns','exps','combo','loans','lpay','kirana'].forEach(k=>{const ids=new Set(D[k].map(x=>x.id));c[k].forEach(x=>{if(!ids.has(x.id))D[k].push(x)})});render()}
   }
   if(D.items.length||D.moves.length||D.visits.length||snap.exists){const sn=JSON.parse(JSON.stringify(D));cq=cq.then(()=>cloudRef.set(sn)).catch(()=>{})}
-  cst('☁️ Cloud Backup चालू — तुमच्या Claude account मध्ये आपोआप Save होतो');
- }catch(e){cst('☁️ Cloud Backup बंद — Download Backup वापरा')}
+  cst('☁️ Cloud Backup चालू — '+(u.email||'')+' वर आपोआप Save होतो');
+ }catch(e){cloudRef=cloudCol=null;cst('☁️ Cloud Backup बंद — Internet तपासा किंवा Download Backup वापरा')}
 }
 let aid=null;const aCalc=()=>{const p=n($('aSell').value)-n($('aCost').value);$('aProfit').innerHTML='नफा: <span class="'+(p<0?'neg':'pos')+'">'+inr(p)+'</span>'};
 $('aCost').oninput=$('aSell').oninput=aCalc;$('aCancel').onclick=()=>{$('aModal').style.display='none'};
@@ -707,7 +738,8 @@ const rToday=()=>{const t=today(),vs=D.visits.filter(v=>v.date===t&&v.done&&v.st
  $('tDetail').innerHTML=h};
 render=function(){cngBuild();rMon();_render();rConn();rDv();rExp();rLoan();rCombo();rToday();rVD()};
 $('q').oninput=render;
-render();initCloud().then(()=>{if(!cloudRef)cwarn(true);else{cwarn(false);dailyBk(JSON.parse(JSON.stringify(D)));listBk()}});
+const runCloud=()=>initCloud().then(()=>{if(!cloudRef)cwarn(true);else{cwarn(false);dailyBk(JSON.parse(JSON.stringify(D)));listBk()}});
+render();runCloud();
 
 /* ===== किराणा (वेगळा टॅब) ===== */
 (function(){
