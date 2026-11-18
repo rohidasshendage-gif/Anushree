@@ -2,7 +2,7 @@
 <html lang="mr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#0b4fb3"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Anushree Service Manager</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -318,7 +318,7 @@ const listBk=async()=>{const el=document.getElementById('cloudBk');if(!el||!clou
 document.addEventListener('click',async e=>{const b=e.target.closest&&e.target.closest('[data-bkr]');if(!b)return;if(b.dataset.s!=='1'){b.dataset.s='1';b.textContent='खात्री? परत दाबा';return setTimeout(()=>{if(b.isConnected)listBk()},4000)}
  try{const sn=await cloudCol.doc(b.dataset.bkr).get();if(!sn.exists)throw 0;const c=sn.data()||{};await cloudCol.doc('asm_pre_restore').set(JSON.parse(JSON.stringify(D)));D={items:c.items||[],moves:c.moves||[],visits:c.visits||[],conns:c.conns||[],exps:c.exps||[],combo:c.combo||[],loans:c.loans||[],lpay:c.lpay||[],kirana:c.kirana||[]};save();render();toast('✅ Restore झाले')}catch(x){toast('Restore झाले नाही');listBk()}});
 const save=()=>{D.ts=Date.now();try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){}
- if(cloudRef){const snap=JSON.parse(JSON.stringify(D));cq=cq.then(()=>cloudRef.set(snap)).then(()=>{cwarn(false);dailyBk(snap)},e=>{cwarn(true);throw e}).then(()=>cst('☁️ Cloud Backup चालू — शेवटचे '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}))).catch(()=>cst('⚠️ Cloud Backup झाला नाही (नंतर परत होईल)'))}};
+ if(cloudRef){const snap=JSON.parse(JSON.stringify(D));cq=cq.then(()=>cloudRef.set(snap)).then(()=>{cwarn(false);dailyBk(snap)},e=>{cwarn(true);throw e}).then(()=>cst('☁️ Cloud Backup चालू — शेवटचे '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}))).catch(e=>cst('⚠️ Cloud Backup झाला नाही — '+((e&&(e.code||e.message))||'')))}};
 const $=id=>document.getElementById(id),n=v=>parseFloat(v)||0;
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -539,7 +539,7 @@ $('bkTx').onclick=()=>{showTx();$('bkTa').select()};
 $('bkDrive').onclick=async()=>{const name='Anushree_Backup_'+today()+'.json';
  try{const f=new File([bk()],name,{type:'application/json'});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:name});return toast('✅ Backup पाठवला')}}catch(e){if(e&&e.name==='AbortError')return}
  if(DL){try{await DL.save({filename:name,data:bk()});toast('✅ File तयार — Files मधून Google Drive मध्ये टाका')}catch(e){if(!e||e.code!=='declined'){showTx();toast('Text Copy करून ठेवा')}}}else{showTx();toast('Text Copy करून ठेवा')}};
-$('bkDl').onclick=async()=>{if(!DL){showTx();return toast('Download नाही — Text Copy करा')}
+$('bkDl').onclick=async()=>{if(!DL){try{const b=new Blob([bk()],{type:'application/json'}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download='Anushree_Backup_'+today()+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);return toast('✅ Backup Download झाला')}catch(e){showTx();return toast('Download नाही — Text Copy करा')}}
  try{await DL.save({filename:'Anushree_Backup_'+today()+'.json',data:bk()});toast('✅ Backup तयार')}catch(e){if(!e||e.code!=='declined'){showTx();toast('Text Copy करून ठेवा')}}};
 $('bkCopy').onclick=async()=>{const t=$('bkTa');t.select();try{await navigator.clipboard.writeText(t.value)}catch(e){try{document.execCommand('copy')}catch(x){}}toast('📋 Copy झाले')};
 $('bkFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{$('bkBox').style.display='block';$('bkTa').value=r.result;toast('आता Restore दाबा')};r.readAsText(f);e.target.value=''};
@@ -873,5 +873,6 @@ save();render();toast('✅ '+(tg.length>1?tg.length+' हप्ते':'हप�
 },true);
 })();
 </script>
+<script>if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));</script>
 </body></html>
 <!-- cloud-backup capabilities: db,user -->
