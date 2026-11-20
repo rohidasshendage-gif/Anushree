@@ -343,7 +343,7 @@ async function loadFromFirebase(){
     console.error("FIREBASE LOAD ERROR",e);
     const st=document.getElementById("firebaseStatus");
     if(st){st.textContent="⚠️ FIREBASE NOT CONNECTED";st.style.background="#ffe0e0";st.style.color="#a40000";}
-    if(navigator.onLine)alert("FIREBASE CONNECT FAILED. FIRESTORE RULES / INTERNET CHECK KARA.");
+    if(navigator.onLine&&auth.currentUser)alert("FIREBASE CONNECT FAILED. FIRESTORE RULES / INTERNET CHECK KARA.");
     else setNetStatus();
   }
 }
@@ -920,7 +920,7 @@ setTimeout(updateDashboard,500);
     if(!confirm(msg))return;
     try{await auth.signOut();}catch(e){}
     try{await db.terminate();await db.clearPersistence();}catch(e){}
-    try{["GAS_CUSTOMERS_V3","GAS_HISTORY_V3","GAS_PENDING_DEL"].forEach(k=>localStorage.removeItem(k));}catch(e){}
+    try{["GAS_CUSTOMERS_V3","GAS_HISTORY_V3","GAS_PENDING_DEL","GAS_SYNCED_V1"].forEach(k=>localStorage.removeItem(k));}catch(e){}
     location.reload();
   });
   auth.onAuthStateChanged(u=>{
